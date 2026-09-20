@@ -8,16 +8,9 @@ An AI-powered platform that aggregates job and academic opportunities from multi
 
 - FastAPI backend with a health-check endpoint, backed by Postgres via `docker-compose`.
 - A `Greenhouse` job board adapter that fetches real postings and normalizes them into an internal schema, with automatic retry on transient network/server errors.
+- SQLAlchemy models and Alembic migrations for persisting opportunities, with an idempotent loader that finds-or-creates the parent organization before inserting or updating each record.
 - Centralized, configurable logging (`LOG_LEVEL` env var) instead of ad-hoc `print` calls.
 - Unit tests for business logic, a separate opt-in integration suite for live external calls, linting (`ruff`) and static type checking (`mypy`), all enforced in CI.
-
-## Roadmap
-
-- [ ] Persist opportunities in Postgres via SQLAlchemy models and Alembic migrations.
-- [ ] Serve stored opportunities through a paginated REST endpoint.
-- [ ] Semantic search over opportunities using `pgvector` embeddings.
-- [ ] Structured extraction of eligibility criteria from raw postings using an LLM.
-- [ ] A second data source behind a shared adapter contract.
 
 ## Architecture
 
@@ -27,7 +20,8 @@ Each folder under `app/` answers one specific question:
 |---|---|
 | `app/adapters/` | Where does raw data come from? (one file per external source, no business logic) |
 | `app/schemas/` | What shape is the data? (Pydantic models, source-independent) |
-| `app/models/` | How is the data stored? (SQLAlchemy ORM models, once the database layer exists) |
+| `app/models/` | How is the data stored? (SQLAlchemy ORM models) |
+| `app/db/` | Where and how is it persisted? (engine/session setup, Alembic migrations) |
 | `app/services/` | What logic runs on this data? (matching, eligibility — the core of the project) |
 | `app/api/` | How does the outside world reach the system? (thin FastAPI routers) |
 | `app/core/` | Shared configuration, logging, error handling |
@@ -50,6 +44,15 @@ uv run python -m scripts.fetch_greenhouse
 ```
 
 Writes normalized opportunities from N26's public Greenhouse job board to `data/opportunities_greenhouse.json`.
+
+## Persisting to Postgres
+
+```bash
+uv run alembic upgrade head              # create/update tables
+uv run python -m scripts.load_greenhouse_to_db
+```
+
+Reads `data/opportunities_greenhouse.json` and upserts it into Postgres, creating each organization on first sight and updating existing opportunities on repeat runs instead of duplicating them.
 
 ## Testing
 
