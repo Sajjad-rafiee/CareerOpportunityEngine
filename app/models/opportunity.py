@@ -32,3 +32,12 @@ class Opportunity(Base):
     source: Mapped[str] = mapped_column(String(50))
 
     organization: Mapped["Organization"] = relationship(back_populates="opportunities")
+
+    @property
+    def organization_name(self) -> str:
+        """
+        برای این‌که OpportunityResponse بتونه با from_attributes خودکار
+        این مقدار رو از روی رابطه organization بگیره، بدون این‌که لایه‌ی
+        API مجبور باشه دستی این مپینگ رو انجام بده.
+        """
+        return self.organization.name

@@ -58,8 +58,21 @@ class OpportunityResponse(OpportunityBase):
     """
     id: UUID = Field(..., description="شناسه یکتا در دیتابیس")
     organization_id: UUID = Field(..., description="شناسه سازمان")
+    organization_name: str = Field(..., description="نام سازمان")
     external_id: str = Field(..., description="شناسه در منبع خارجی")
     source: str = Field(..., description="منبع داده")
     created_at: datetime = Field(..., description="زمان ایجاد در سیستم ما")
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class PaginatedOpportunities(BaseModel):
+    """
+    پاسخ صفحه‌بندی‌شده — علاوه بر خود رکوردها، تعداد کل و پارامترهای
+    صفحه‌بندی رو هم برمی‌گردونه تا کلاینت بدونه صفحه‌ی بعدی هست یا نه.
+    """
+
+    items: list[OpportunityResponse]
+    total: int
+    limit: int
+    offset: int
