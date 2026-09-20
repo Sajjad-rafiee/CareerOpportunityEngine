@@ -6,9 +6,14 @@ Adapter برای Greenhouse Job Board API.
 ذخیره در دیتابیس) نباید اینجا باشه.
 """
 
+import logging
+
 import httpx
+from tenacity import retry, retry_if_exception, stop_after_attempt, wait_exponential
 
 from app.schemas.opportunity import OpportunityIngest
+
+logger = logging.getLogger(__name__)
 
 GREENHOUSE_JOBS_URL = "https://boards-api.greenhouse.io/v1/boards/{board_token}/jobs"
 
@@ -17,20 +22,49 @@ class GreenhouseAPIError(Exception):
     """وقتی Greenhouse خطا برگردونه یا جواب به شکلی که انتظار داریم نباشه."""
 
 
-def fetch_raw_jobs(board_token: str) -> list[dict]:
+def _is_retryable(exc: BaseException) -> bool:
+    # خطای شبکه (timeout، قطعی اتصال و غیره): همیشه ارزش تلاش دوباره داره.
+    if isinstance(exc, httpx.TransportError):
+        return True
+    # خطای سمت سرور (5xx): موقتیه، احتمالاً با تلاش دوباره حل می‌شه.
+    # خطای سمت کلاینت (4xx، مثل 404 یا board اشتباه): تلاش دوباره فایده‌ای نداره،
+    # چون با تکرار همون درخواست، همون جواب رو می‌گیریم.
+    if isinstance(exc, httpx.HTTPStatusError):
+        return exc.response.status_code >= 500
+    return False
+
+
+@retry(
+    stop=stop_after_attempt(3),
+    wait=wait_exponential(multiplier=1, min=1, max=8),
+    retry=retry_if_exception(_is_retryable),
+    reraise=True,
+)
+def _get_jobs_page(board_token: str) -> httpx.Response:
     url = GREENHOUSE_JOBS_URL.format(board_token=board_token)
     response = httpx.get(url, params={"content": "true"}, timeout=10)
+    response.raise_for_status()
+    return response
 
-    if response.status_code != 200:
+
+def fetch_raw_jobs(board_token: str) -> list[dict]:
+    try:
+        response = _get_jobs_page(board_token)
+    except httpx.HTTPStatusError as exc:
         raise GreenhouseAPIError(
-            f"Greenhouse returned {response.status_code} for board '{board_token}'"
-        )
+            f"Greenhouse returned {exc.response.status_code} for board '{board_token}'"
+        ) from exc
+    except httpx.TransportError as exc:
+        raise GreenhouseAPIError(
+            f"Network error calling Greenhouse for board '{board_token}': {exc}"
+        ) from exc
 
     data = response.json()
     jobs = data.get("jobs")
     if jobs is None:
         raise GreenhouseAPIError(f"Unexpected Greenhouse response shape: {data}")
 
+    logger.info("Fetched %d raw jobs from Greenhouse board '%s'", len(jobs), board_token)
     return jobs
 
 
