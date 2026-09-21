@@ -16,6 +16,7 @@ from sqlalchemy.orm import Session
 from app.core.logging import setup_logging
 from app.db.session import SessionLocal
 from app.models import Opportunity, Organization
+from app.services.embeddings import build_embedding_text, embed_text
 
 logger = logging.getLogger(__name__)
 
@@ -40,11 +41,14 @@ def upsert_opportunity(db: Session, record: dict, organization: Organization) ->
         .first()
     )
 
+    embedding = embed_text(build_embedding_text(record["title"], record["description"]))
+
     if existing is not None:
         existing.title = record["title"]
         existing.description = record["description"]
         existing.deadline = record["deadline"]
         existing.posted_at = record["posted_at"]
+        existing.embedding = embedding
         return
 
     db.add(
@@ -58,6 +62,7 @@ def upsert_opportunity(db: Session, record: dict, organization: Organization) ->
             posted_at=record["posted_at"],
             external_id=record["external_id"],
             source=record["source"],
+            embedding=embedding,
         )
     )
 

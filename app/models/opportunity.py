@@ -2,6 +2,7 @@ import uuid
 from datetime import UTC, date, datetime
 from typing import TYPE_CHECKING
 
+from pgvector.sqlalchemy import Vector
 from sqlalchemy import Date, DateTime, ForeignKey, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -9,6 +10,10 @@ from app.db.base import Base
 
 if TYPE_CHECKING:
     from app.models.organization import Organization
+
+# ابعاد بردار sentence-transformers/all-MiniLM-L6-v2. اگه مدل embedding
+# عوض بشه، این عدد هم باید عوض بشه (و یک migration جدید بخواد).
+EMBEDDING_DIMENSIONS = 384
 
 
 class Opportunity(Base):
@@ -30,6 +35,12 @@ class Opportunity(Base):
 
     external_id: Mapped[str] = mapped_column(String(255))
     source: Mapped[str] = mapped_column(String(50))
+
+    # nullable چون رکوردهایی که قبل از این migration وارد شدن، یا رکوردهایی
+    # که مدل embedding موقع لود کردنشون در دسترس نبوده، بردار ندارن.
+    embedding: Mapped[list[float] | None] = mapped_column(
+        Vector(EMBEDDING_DIMENSIONS), default=None
+    )
 
     organization: Mapped["Organization"] = relationship(back_populates="opportunities")
 

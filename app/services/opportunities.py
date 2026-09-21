@@ -28,3 +28,27 @@ def list_opportunities(db: Session, limit: int, offset: int) -> tuple[list[Oppor
     )
 
     return list(items), total
+
+
+def search_opportunities(
+    db: Session, query_embedding: list[float], limit: int
+) -> list[tuple[Opportunity, float]]:
+    """
+    نزدیک‌ترین آگهی‌ها به یک بردار query، بر اساس فاصله‌ی کسینوسی pgvector.
+
+    رکوردهایی که هنوز embedding ندارن (مثلاً چون قبل از این migration
+    وارد شدن) رد می‌شن، چون فاصله‌شون بی‌معنیه.
+    """
+    distance = Opportunity.embedding.cosine_distance(query_embedding)
+
+    rows = db.execute(
+        select(Opportunity, distance.label("distance"))
+        .options(selectinload(Opportunity.organization))
+        .where(Opportunity.embedding.is_not(None))
+        .order_by(distance)
+        .limit(limit)
+    ).all()
+
+    # cosine_distance = 1 - cosine_similarity، پس similarity رو برمی‌گردونیم
+    # چون برای کاربر عدد «شباهت» (بزرگ‌تر = بهتر) قابل‌فهم‌تر از «فاصله»‌ست.
+    return [(opportunity, 1 - dist) for opportunity, dist in rows]

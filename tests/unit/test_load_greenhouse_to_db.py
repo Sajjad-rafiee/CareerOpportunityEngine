@@ -2,19 +2,27 @@
 تست منطق get_or_create_organization و upsert_opportunity با یک
 دیتابیس SQLite در حافظه — نه Postgres واقعی، چون فقط منطق پایتونی
 رو می‌خوایم تست کنیم، نه رفتار خود Postgres.
+
+embed_text هم mock می‌شه: upsert_opportunity همیشه یک embedding واقعی
+می‌سازه، ولی لود کردن مدل ML واقعی این تست‌های "واحد" رو کند و به
+دانلود وزن‌های مدل وابسته می‌کنه — چیزی که فقط تست integration باید
+بهش وابسته باشه.
 """
 
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
+import scripts.load_greenhouse_to_db as loader
 from app.db.base import Base
 from app.models import Opportunity, Organization
 from scripts.load_greenhouse_to_db import get_or_create_organization, upsert_opportunity
 
 
 @pytest.fixture
-def db():
+def db(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setattr(loader, "embed_text", lambda text: [0.0] * 384)
+
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     with Session(engine) as session:

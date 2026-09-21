@@ -9,8 +9,13 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
-from app.schemas.opportunity import OpportunityResponse, PaginatedOpportunities
-from app.services.opportunities import list_opportunities
+from app.schemas.opportunity import (
+    OpportunityResponse,
+    OpportunitySearchResult,
+    PaginatedOpportunities,
+)
+from app.services.embeddings import embed_text
+from app.services.opportunities import list_opportunities, search_opportunities
 
 router = APIRouter(prefix="/opportunities", tags=["opportunities"])
 
@@ -29,3 +34,21 @@ def get_opportunities(
         limit=limit,
         offset=offset,
     )
+
+
+@router.get("/search", response_model=list[OpportunitySearchResult])
+def search(
+    q: str = Query(..., min_length=1, description="عبارت جستجوی معنایی"),
+    limit: int = Query(10, ge=1, le=50),
+    db: Session = Depends(get_db),
+) -> list[OpportunitySearchResult]:
+    query_embedding = embed_text(q)
+    results = search_opportunities(db, query_embedding=query_embedding, limit=limit)
+
+    return [
+        OpportunitySearchResult(
+            **OpportunityResponse.model_validate(opportunity).model_dump(),
+            score=score,
+        )
+        for opportunity, score in results
+    ]

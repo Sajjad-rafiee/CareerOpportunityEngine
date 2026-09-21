@@ -76,3 +76,9 @@ class PaginatedOpportunities(BaseModel):
     total: int
     limit: int
     offset: int
+
+
+class OpportunitySearchResult(OpportunityResponse):
+    score: float = Field(
+        ..., description="شباهت معنایی با عبارت جستجو (بین ۰ و ۱، بزرگ‌تر یعنی نزدیک‌تر)"
+    )
