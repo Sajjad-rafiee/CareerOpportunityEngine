@@ -1,7 +1,7 @@
 [project]
-name = "career-graph-ai"
+name = "career-opportunity-engine"
 version = "0.1.0"
-description = "AI-powered career and academic opportunity platform"
+description = "Ingests job postings, embeds and semantically searches them, and extracts structured eligibility data with an LLM"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [

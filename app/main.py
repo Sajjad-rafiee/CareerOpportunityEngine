@@ -17,7 +17,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
 
 app = FastAPI(
-    title="CareerGraphAI",
+    title="CareerOpportunityEngine",
     version="0.1.0",
     lifespan=lifespan,
 )
@@ -27,4 +27,4 @@ app.include_router(opportunities_router)
 
 @app.get("/")
 def root() -> dict[str, str]:
-    return {"message": "CareerGraphAI is running"}
+    return {"message": "CareerOpportunityEngine is running"}

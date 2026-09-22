@@ -1,7 +1,7 @@
 services:
   postgres:
     image: pgvector/pgvector:pg16
-    container_name: careergraphai-postgres
+    container_name: career-opportunity-engine-postgres
 
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
@@ -16,7 +16,7 @@ services:
 
   app:
     build: .
-    container_name: careergraphai-app
+    container_name: career-opportunity-engine-app
     depends_on:
       - postgres
 

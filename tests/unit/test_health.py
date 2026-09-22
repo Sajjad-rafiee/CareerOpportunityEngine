@@ -11,4 +11,4 @@ def test_root_returns_running_message():
     response = client.get("/")
 
     assert response.status_code == 200
-    assert response.json() == {"message": "CareerGraphAI is running"}
+    assert response.json() == {"message": "CareerOpportunityEngine is running"}

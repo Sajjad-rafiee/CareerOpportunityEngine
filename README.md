@@ -1,4 +1,4 @@
-# CareerGraphAI
+# CareerOpportunityEngine
 
 ![CI](https://github.com/Sajjad-rafiee/CareerGraphAI/actions/workflows/ci.yml/badge.svg)
 
