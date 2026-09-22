@@ -55,15 +55,25 @@ After the adapter normalizes it (`OpportunityIngest`):
 {"title": "AI Engineer", "description": "&lt;p&gt;5+ years...&lt;/p&gt;", "external_id": "8556658002", "source": "greenhouse"}
 ```
 
-After loading (embedded, eligibility extracted, persisted), a search request:
+### Semantic search in practice
+
+The query below shares **zero words** with the phrase "Anti-Financial Crime"
+used in the actual postings, yet still ranks them first:
 
 ```bash
-curl "http://127.0.0.1:8000/opportunities/search?q=money+laundering+compliance&limit=3"
+curl "http://127.0.0.1:8000/opportunities/search?q=money+laundering+compliance+detective+work&limit=3"
 ```
 
-returns postings ranked by meaning, not keyword overlap - a query with zero
-words in common with the posting text still surfaces the right result, each
-with a similarity `score`.
+```json
+[
+  { "title": "AFC Analyst – Italian market", "score": 0.512, "organization_name": "N26", "...": "..." },
+  { "title": "AFC Operations Team Lead Italy (Fixed-Term Contract)", "score": 0.406, "...": "..." },
+  { "title": "Fraud Analyst – Operations", "score": 0.358, "...": "..." }
+]
+```
+
+A genuinely unrelated query (`baking bread and pastries`) scores every
+posting below 0.07 - the ranking reflects meaning, not coincidence.
 
 ## Running with Docker
 
@@ -97,9 +107,37 @@ and eligibility (a paid API call) is only extracted once per posting.
 
 ## API
 
-- `GET /opportunities?limit=&offset=` - paginated list.
-- `GET /opportunities/search?q=&limit=` - semantic search, ranked by cosine
-  similarity.
+Interactive docs (Swagger UI) at `/docs` once the server is running.
+
+### `GET /opportunities?limit=&offset=` - paginated list
+
+```bash
+curl "http://127.0.0.1:8000/opportunities?limit=1"
+```
+
+```json
+{
+  "items": [
+    {
+      "title": "Vendor Management Internship",
+      "description": "About the opportunity... (raw HTML from the source)",
+      "type": "job",
+      "url": "https://n26.com/en-eu/careers/positions/8015153",
+      "organization_name": "N26",
+      "source": "greenhouse",
+      "created_at": "2026-09-20T19:25:47.621006"
+    }
+  ],
+  "total": 78,
+  "limit": 1,
+  "offset": 0
+}
+```
+
+### `GET /opportunities/search?q=&limit=` - semantic search
+
+See the [example above](#semantic-search-in-practice) - ranked by pgvector
+cosine similarity, not keyword matching.
 
 ## Testing
 
@@ -112,3 +150,7 @@ uv run mypy app scripts alembic
 
 Unit tests mock external calls and use SQLite in place of Postgres;
 integration tests are excluded from CI since they depend on live services.
+
+## License
+
+[MIT](LICENSE)
