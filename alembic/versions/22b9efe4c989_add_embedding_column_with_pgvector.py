@@ -19,8 +19,7 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    # روی یک دیتابیس تازه (مثلاً CI یا کلون جدید)، extension باید صریحاً
-    # فعال بشه قبل از این‌که بشه از نوع vector استفاده کرد.
+    # Needed on a fresh database (CI, new clone) before the vector type can be used.
     op.execute("CREATE EXTENSION IF NOT EXISTS vector")
     op.add_column(
         'opportunities',

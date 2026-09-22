@@ -2,73 +2,113 @@
 
 ![CI](https://github.com/Sajjad-rafiee/CareerGraphAI/actions/workflows/ci.yml/badge.svg)
 
-An AI-powered platform that aggregates job and academic opportunities from multiple external sources, normalizes them into a single internal model, and (in later iterations) uses embeddings and LLMs to match them against a user's profile and determine eligibility.
+A backend that pulls job postings from external sources, normalizes them into
+one internal model, and serves them through a REST API with semantic search
+and LLM-based eligibility extraction (visa sponsorship, language
+requirements, seniority, remote policy).
 
-## Features
-
-- FastAPI backend with a health-check endpoint, backed by Postgres via `docker-compose`.
-- A `Greenhouse` job board adapter that fetches real postings and normalizes them into an internal schema, with automatic retry on transient network/server errors.
-- SQLAlchemy models and Alembic migrations for persisting opportunities, with an idempotent loader that finds-or-creates the parent organization before inserting or updating each record.
-- `GET /opportunities` (paginated) and `GET /opportunities/search` for semantic search: query text is embedded locally (`sentence-transformers/all-MiniLM-L6-v2`, no API key or network call needed at query time) and matched against stored embeddings with pgvector cosine distance, so a search finds relevant postings even with no shared words.
-- Structured eligibility extraction with an LLM (Gemini): visa sponsorship, German language requirement, experience level, and remote-friendliness are inferred from each posting's raw text into their own `Eligibility` record, constrained to a Pydantic schema so the model can't return malformed output.
-- Centralized, configurable logging (`LOG_LEVEL` env var) instead of ad-hoc `print` calls.
-- Unit tests for business logic, a separate opt-in integration suite for live external calls, linting (`ruff`) and static type checking (`mypy`), all enforced in CI.
+**In one line:** FastAPI + Postgres/pgvector backend that ingests job
+postings, embeds and semantically searches them, and extracts structured
+eligibility data with an LLM - built incrementally with tests, CI, and typed
+Python throughout.
 
 ## Architecture
 
-Each folder under `app/` answers one specific question:
+```mermaid
+flowchart LR
+    GH[Greenhouse API] -->|fetch| AD[adapters/greenhouse.py]
+    AD -->|normalize| JSON[(opportunities.json)]
+    JSON --> LOAD[load_greenhouse_to_db.py]
+    LOAD -->|embed text| MODEL[all-MiniLM-L6-v2]
+    LOAD -->|extract fields| GEMINI[Gemini]
+    LOAD --> DB[(Postgres + pgvector)]
+    DB --> API[FastAPI]
+    API --> CLIENT[Client]
+```
+
+Each folder under `app/` answers one question:
 
 | Folder | Question it answers |
-|---|---|
-| `app/adapters/` | Where does raw data come from? (one file per external source, no business logic) |
-| `app/schemas/` | What shape is the data? (Pydantic models, source-independent) |
-| `app/models/` | How is the data stored? (SQLAlchemy ORM models) |
-| `app/db/` | Where and how is it persisted? (engine/session setup, Alembic migrations) |
-| `app/services/` | What logic runs on this data? (querying, embeddings, matching, eligibility — the core of the project) |
-| `app/api/` | How does the outside world reach the system? (thin FastAPI routers) |
-| `app/core/` | Shared configuration, logging, error handling |
-| `app/jobs/` | Scheduled/recurring tasks |
-| `scripts/` | One-off scripts (not part of the running app) |
+| --- | --- |
+| `app/adapters/` | Where does raw data come from? (one file per source, no business logic) |
+| `app/schemas/` | What shape is the data? (Pydantic, source-independent) |
+| `app/models/` | How is it stored? (SQLAlchemy) |
+| `app/db/` | Where and how is it persisted? (engine/session, Alembic) |
+| `app/services/` | What logic runs on it? (querying, embeddings, eligibility) |
+| `app/api/` | How does the outside world reach it? (thin routers) |
+| `app/core/` | Shared config, logging |
+| `scripts/` | One-off scripts, not part of the running app |
 
-## Running locally
+Architecture decisions with their reasoning are in [`docs/adr/`](docs/adr/).
+
+## Data flow example
+
+Raw Greenhouse response:
+
+```json
+{"id": 8556658002, "title": "AI Engineer", "content": "&lt;p&gt;5+ years...&lt;/p&gt;"}
+```
+
+After the adapter normalizes it (`OpportunityIngest`):
+
+```json
+{"title": "AI Engineer", "description": "&lt;p&gt;5+ years...&lt;/p&gt;", "external_id": "8556658002", "source": "greenhouse"}
+```
+
+After loading (embedded, eligibility extracted, persisted), a search request:
+
+```bash
+curl "http://127.0.0.1:8000/opportunities/search?q=money+laundering+compliance&limit=3"
+```
+
+returns postings ranked by meaning, not keyword overlap - a query with zero
+words in common with the posting text still surfaces the right result, each
+with a similarity `score`.
+
+## Running with Docker
+
+```bash
+cp .env.example .env   # fill in Postgres credentials and GEMINI_API_KEY
+docker compose up --build
+```
+
+Starts Postgres and the API together; migrations run automatically on
+container start. API docs at `http://localhost:8000/docs`.
+
+## Running locally (without Docker for the app)
 
 ```bash
 uv sync
-cp .env.example .env   # fill in Postgres credentials
-docker compose up -d   # starts Postgres
+cp .env.example .env
+docker compose up -d postgres
+uv run alembic upgrade head
 uv run uvicorn app.main:app --reload
 ```
 
-## Fetching real data
+## Loading real data
 
 ```bash
-uv run python -m scripts.fetch_greenhouse
+uv run python -m scripts.fetch_greenhouse        # fetch + normalize -> data/*.json
+uv run python -m scripts.load_greenhouse_to_db   # embed, extract eligibility, persist
 ```
 
-Writes normalized opportunities from N26's public Greenhouse job board to `data/opportunities_greenhouse.json`.
+Both are idempotent: reruns update existing rows instead of duplicating them,
+and eligibility (a paid API call) is only extracted once per posting.
 
-## Persisting to Postgres
+## API
 
-```bash
-uv run alembic upgrade head              # create/update tables
-uv run python -m scripts.load_greenhouse_to_db
-```
-
-Reads `data/opportunities_greenhouse.json` and upserts it into Postgres, creating each organization on first sight and updating existing opportunities on repeat runs instead of duplicating them. Each record's `title + description` is also embedded and stored alongside it, ready for semantic search. Eligibility is extracted with an LLM once per opportunity (skipped on repeat runs if it already exists, since unlike embeddings this calls a paid API) — requires `GEMINI_API_KEY` in `.env` (free key from [aistudio.google.com/apikey](https://aistudio.google.com/apikey)).
-
-## Semantic search
-
-```bash
-curl "http://127.0.0.1:8000/opportunities/search?q=money+laundering+compliance&limit=5"
-```
-
-Returns the closest opportunities by meaning, each with a `score` (cosine similarity, higher is closer) — including postings that share no words at all with the query.
+- `GET /opportunities?limit=&offset=` - paginated list.
+- `GET /opportunities/search?q=&limit=` - semantic search, ranked by cosine
+  similarity.
 
 ## Testing
 
 ```bash
-uv run pytest                 # fast unit tests only
-uv run pytest -m integration  # also hits real external APIs
-uv run ruff check .           # lint
-uv run mypy app                # static type checking
+uv run pytest                 # fast unit tests, no network/DB required
+uv run pytest -m integration  # also hits Greenhouse, Gemini, and the embedding model
+uv run ruff check .
+uv run mypy app scripts alembic
 ```
+
+Unit tests mock external calls and use SQLite in place of Postgres;
+integration tests are excluded from CI since they depend on live services.

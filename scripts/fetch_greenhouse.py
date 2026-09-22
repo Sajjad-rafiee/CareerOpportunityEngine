@@ -1,8 +1,7 @@
-"""
-از Greenhouse (شرکت N26) داده واقعی بگیر، normalize کن، و توی یک فایل
-JSON بریز. دیتابیس اینجا اصلاً دخیل نیست.
+"""Fetch real N26 postings from Greenhouse, normalize, write to JSON.
+No database involved.
 
-اجرا: uv run python -m scripts.fetch_greenhouse
+Run: uv run python -m scripts.fetch_greenhouse
 """
 
 import json

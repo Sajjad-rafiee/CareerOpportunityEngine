@@ -1,7 +1,5 @@
-"""
-تست integration: واقعاً به Gemini وصل می‌شه و چک می‌کنه استخراج
-منطقی جواب می‌ده. نیاز به GEMINI_API_KEY واقعی در .env داره.
-"""
+"""Hits real Gemini and checks the extraction is sensible.
+Needs a real GEMINI_API_KEY in .env."""
 
 import pytest
 

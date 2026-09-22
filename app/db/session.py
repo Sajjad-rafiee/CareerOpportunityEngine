@@ -1,11 +1,7 @@
-"""
-Engine و Session factory برای اتصال به Postgres.
+"""Engine and session factory for Postgres.
 
-عمداً engine رو موقع import ساخته نمی‌شه (lazy، پشت get_engine())، چون
-اگه ساخته بشه یعنی صرفاً import کردن این فایل، بدون اینکه واقعاً بخوایم
-به دیتابیس وصل بشیم، تنظیمات .env رو لازم داره. این باعث می‌شه مثلاً
-در CI که .env وجود نداره، تست‌هایی که اصلاً کاری به دیتابیس واقعی
-ندارن (و به‌جاش SQLite در حافظه استفاده می‌کنن) هم fail بشن.
+get_engine() is lazy so importing this module never requires .env
+to be present (e.g. in CI, where unit tests use SQLite instead).
 """
 
 from collections.abc import Generator
@@ -28,7 +24,7 @@ def SessionLocal() -> Session:
 
 
 def get_db() -> Generator[Session, None, None]:
-    """برای استفاده به‌عنوان FastAPI dependency در فازهای بعدی (endpoint ها)."""
+    """FastAPI dependency."""
     db = SessionLocal()
     try:
         yield db

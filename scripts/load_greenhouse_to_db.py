@@ -1,10 +1,9 @@
-"""
-داده‌ی normalize‌شده‌ی data/opportunities_greenhouse.json (خروجی
-scripts/fetch_greenhouse.py) رو می‌خونه و توی Postgres می‌ریزه.
+"""Reads data/opportunities_greenhouse.json and loads it into Postgres.
 
-Idempotent: اگه دوباره اجرا بشه، رکوردهای تکراری نمی‌سازه — به‌جاش
-رکورد موجود رو آپدیت می‌کنه. یکتایی از روی (source, external_id) چک
-می‌شه، چون همون چیزیه که در سطح دیتابیس هم constraint داره.
+Idempotent: reruns update existing rows instead of duplicating them,
+matched on (source, external_id).
+
+Run: uv run python -m scripts.load_greenhouse_to_db
 """
 
 import json
@@ -31,7 +30,7 @@ def get_or_create_organization(db: Session, name: str) -> Organization:
 
     organization = Organization(name=name)
     db.add(organization)
-    db.flush()  # UUID رو بدون commit کردن کل transaction می‌گیریم
+    db.flush()
     return organization
 
 
@@ -65,16 +64,13 @@ def upsert_opportunity(db: Session, record: dict, organization: Organization) ->
         embedding=embedding,
     )
     db.add(opportunity)
-    db.flush()  # opportunity.id رو لازم داریم تا Eligibility بتونه بهش وصل بشه
+    db.flush()  # need opportunity.id for the Eligibility FK
     return opportunity
 
 
 def ensure_eligibility(db: Session, opportunity: Opportunity, record: dict) -> None:
-    """
-    فقط برای رکوردهایی که هنوز eligibility ندارن استخراج می‌کنه - برخلاف
-    embedding (که رایگان و لوکاله)، این یک API پولیه، پس نباید هر بار
-    اجرای مجدد این اسکریپت دوباره هزینه‌ی جدید بسازه.
-    """
+    """Extracts once per opportunity. Unlike embeddings (free, local),
+    this hits a paid API, so reruns must not re-bill existing rows."""
     if opportunity.eligibility is not None:
         return
 

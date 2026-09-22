@@ -1,9 +1,4 @@
-"""
-تست integration: واقعاً به Greenhouse وصل می‌شه.
-
-با `pytest -m integration` جدا اجرا می‌شه چون به شبکه وابسته‌ست و کندتره.
-اجرای معمولی pytest (بدون -m) این تست رو رد می‌کنه.
-"""
+"""Hits the real Greenhouse API. Opt-in via `pytest -m integration`."""
 
 import pytest
 

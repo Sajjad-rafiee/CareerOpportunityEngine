@@ -1,10 +1,6 @@
-"""
-تست رفتار retry برای fetch_raw_jobs، بدون تماس واقعی با شبکه.
-
-httpx.get با یک تابع جعلی جایگزین می‌شه تا بتونیم دقیقاً کنترل کنیم
-چند بار fail کنه و با چه خطایی. wait بین تلاش‌ها هم صفر می‌شه تا این
-تست‌ها به‌جای چند ثانیه، آنی اجرا بشن.
-"""
+"""Retry behavior for fetch_raw_jobs, no real network. httpx.get is
+faked to control failures precisely; retry wait is zeroed so these
+run instantly."""
 
 import httpx
 import pytest

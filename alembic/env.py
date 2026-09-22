@@ -20,13 +20,9 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# به‌جای گذاشتن مقدار sqlalchemy.url در alembic.ini (که یعنی رمز عبور
-# دیتابیس دوجا نگه‌داری بشه)، همون Settings خودمون رو که از .env می‌خونه
-# استفاده می‌کنیم.
+# Use our own Settings (from .env) instead of a URL duplicated in alembic.ini.
 config.set_main_option("sqlalchemy.url", get_settings().database_url)
 
-# Base.metadata حاوی همه‌ی جدول‌هاییه که مدل‌های بالا تعریف کردن —
-# همینو Alembic برای autogenerate باهاش diff می‌گیره.
 target_metadata = Base.metadata
 
 # other values from the config, defined by the needs of env.py,

@@ -1,7 +1,5 @@
-"""
-تست منطق ensure_eligibility با SQLite در حافظه و extract_eligibility
-mock‌شده — نه Gemini واقعی، نه Postgres واقعی.
-"""
+"""ensure_eligibility logic against SQLite, with extract_eligibility
+mocked - no real Gemini or Postgres."""
 
 import pytest
 from sqlalchemy import create_engine
@@ -83,8 +81,7 @@ def test_ensure_eligibility_skips_when_already_present(
     db.commit()
     assert calls["count"] == 1
 
-    # دومین بار روی همون opportunity - نباید دوباره Gemini صدا بزنه
-    # چون opportunity.eligibility الان پره.
+    # Second call on the same opportunity: should not hit Gemini again.
     loader.ensure_eligibility(db, opportunity, record)
     db.commit()
     assert calls["count"] == 1

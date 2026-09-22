@@ -1,8 +1,7 @@
-"""
-کلاس پایه‌ای که همه‌ی مدل‌های SQLAlchemy باید از آن ارث‌بری کنند.
+"""Base class for all SQLAlchemy models.
 
-جدا نگه‌داشتنش از session.py عمدیه: Alembic برای autogenerate به
-Base.metadata نیاز داره، بدون این‌که لازم باشه engine واقعی رو import کنه.
+Kept separate from session.py so Alembic can import Base.metadata
+for autogenerate without needing a live engine.
 """
 
 from sqlalchemy.orm import DeclarativeBase

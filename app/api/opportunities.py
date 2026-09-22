@@ -1,9 +1,4 @@
-"""
-Endpoint های مربوط به Opportunity. این فایل عمداً "نازک"‌ه: فقط
-پارامترهای درخواست رو می‌گیره، به app.services.opportunities پاس
-می‌ده، و نتیجه رو به schema پاسخ تبدیل می‌کنه — هیچ کوئری یا منطق
-تجاری‌ای مستقیم اینجا نیست.
-"""
+"""Opportunity endpoints. Kept thin: parse params, call services, shape response."""
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
@@ -22,8 +17,8 @@ router = APIRouter(prefix="/opportunities", tags=["opportunities"])
 
 @router.get("", response_model=PaginatedOpportunities)
 def get_opportunities(
-    limit: int = Query(20, ge=1, le=100, description="تعداد رکورد در هر صفحه"),
-    offset: int = Query(0, ge=0, description="تعداد رکورد رد شده از اول"),
+    limit: int = Query(20, ge=1, le=100),
+    offset: int = Query(0, ge=0),
     db: Session = Depends(get_db),
 ) -> PaginatedOpportunities:
     items, total = list_opportunities(db, limit=limit, offset=offset)
@@ -38,7 +33,7 @@ def get_opportunities(
 
 @router.get("/search", response_model=list[OpportunitySearchResult])
 def search(
-    q: str = Query(..., min_length=1, description="عبارت جستجوی معنایی"),
+    q: str = Query(..., min_length=1),
     limit: int = Query(10, ge=1, le=50),
     db: Session = Depends(get_db),
 ) -> list[OpportunitySearchResult]:

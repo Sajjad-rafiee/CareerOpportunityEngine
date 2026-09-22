@@ -1,10 +1,7 @@
-"""
-استخراج ساختاریافته‌ی اطلاعات واجد شرایط بودن از متن خام آگهی، با LLM.
+"""Structured eligibility extraction from raw posting text via an LLM.
 
-مدل: Gemini (رایگان برای این حجم استفاده، کلید از aistudio.google.com).
-خروجی با Pydantic constrain می‌شه (response_schema) پس خود Gemini
-تضمین می‌کنه فرمت جواب درسته - دیگه لازم نیست خودمون JSON رو parse
-و validate کنیم.
+Model: Gemini. Output is constrained to a Pydantic schema
+(response_schema), so we never parse/validate free-form JSON.
 """
 
 import logging
@@ -20,8 +17,8 @@ from app.core.config import get_settings
 
 logger = logging.getLogger(__name__)
 
-# flash-lite: کافیه برای استخراج چند فیلد ساده، و rate limit رایگانش
-# خیلی بازتر از مدل flash کامله (که برای این حجم استفاده به سرعت پر شد).
+# flash-lite: enough for this extraction, and its free-tier rate limit
+# is far more workable than the full flash model.
 MODEL_NAME = "gemini-3.5-flash-lite"
 
 
@@ -42,7 +39,7 @@ class EligibilityExtraction(BaseModel):
 
 
 class GeminiConfigError(Exception):
-    """وقتی GEMINI_API_KEY تنظیم نشده - خطای قابل‌فهم به‌جای کرش عجیب."""
+    pass
 
 
 @lru_cache
@@ -57,12 +54,10 @@ def _get_client() -> genai.Client:
 
 
 def _is_retryable(exc: BaseException) -> bool:
-    # ۵xx (خطای سرور گوگل): موقتیه.
     if isinstance(exc, ServerError):
         return True
-    # ۴۲۹ (rate limit): دقیقاً همون خطاییه که retry با backoff برای طراحی
-    # شده - برخلاف بقیه‌ی ۴xx (کلید نامعتبر، prompt رد شده) که تلاش
-    # دوباره فایده‌ای نداره.
+    # 429 (rate limit) is exactly what backoff-retry is for, unlike
+    # other 4xx (bad key, rejected prompt) which won't fix themselves.
     if isinstance(exc, ClientError) and exc.code == 429:
         return True
     return False

@@ -1,13 +1,5 @@
-"""
-تست منطق get_or_create_organization و upsert_opportunity با یک
-دیتابیس SQLite در حافظه — نه Postgres واقعی، چون فقط منطق پایتونی
-رو می‌خوایم تست کنیم، نه رفتار خود Postgres.
-
-embed_text هم mock می‌شه: upsert_opportunity همیشه یک embedding واقعی
-می‌سازه، ولی لود کردن مدل ML واقعی این تست‌های "واحد" رو کند و به
-دانلود وزن‌های مدل وابسته می‌کنه — چیزی که فقط تست integration باید
-بهش وابسته باشه.
-"""
+"""get_or_create_organization / upsert_opportunity logic against SQLite,
+not real Postgres. embed_text is mocked so these stay fast."""
 
 import pytest
 from sqlalchemy import create_engine

@@ -1,11 +1,5 @@
-"""
-تست endpoint لیست Opportunity ها.
-
-از یک دیتابیس SQLite در حافظه استفاده می‌کنیم و dependency واقعی
-get_db رو با نسخه‌ی تستی جایگزین می‌کنیم (app.dependency_overrides) —
-الگوی رسمی خود FastAPI برای تست کردن endpoint هایی که به دیتابیس
-وابسته‌ن، بدون نیاز به Postgres واقعی.
-"""
+"""Opportunity list endpoint, backed by SQLite via FastAPI's
+dependency_overrides instead of real Postgres."""
 
 from collections.abc import Iterator
 
@@ -23,9 +17,9 @@ from app.models import Opportunity, Organization
 
 @pytest.fixture
 def client() -> Iterator[TestClient]:
-    # StaticPool چون :memory: SQLite برای هر connection جدید یک دیتابیس
-    # جدا و خالی می‌سازه؛ بدون این، درخواست HTTP یک دیتابیس متفاوت از
-    # همونی که باهاش داده seed کردیم می‌بینه.
+    # StaticPool: :memory: SQLite gives each new connection a separate
+    # empty database, so without this the HTTP request would see a
+    # different database than the one we seeded.
     engine = create_engine(
         "sqlite:///:memory:",
         connect_args={"check_same_thread": False},

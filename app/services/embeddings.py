@@ -1,8 +1,6 @@
-"""
-تبدیل متن آگهی به بردار عددی (embedding) برای جستجوی معنایی.
+"""Turns posting text into vectors for semantic search.
 
-مدل: sentence-transformers/all-MiniLM-L6-v2 — کوچیک، رایگان، کاملاً
-لوکال (بدون نیاز به API key یا اینترنت بعد از اولین دانلود مدل).
+Model: sentence-transformers/all-MiniLM-L6-v2 - small, free, fully local.
 """
 
 import html
@@ -19,21 +17,13 @@ _TAG_RE = re.compile(r"<[^>]+>")
 
 
 def clean_html(raw: str) -> str:
-    """
-    Greenhouse توضیحات رو به‌صورت HTML با entity های escape‌شده برمی‌گردونه
-    (مثلاً &lt;p&gt; به‌جای <p>). برای embedding فقط متن ساده لازمه، وگرنه
-    خود تگ‌ها نویز بی‌معنی به بردار اضافه می‌کنن.
-    """
+    """Greenhouse descriptions are HTML with escaped entities; strip both."""
     return _TAG_RE.sub(" ", html.unescape(raw))
 
 
 def build_embedding_text(title: str, description: str | None) -> str:
-    """
-    تصمیم: عنوان + توضیحات تمیزشده با هم embed می‌شن.
-
-    فقط عنوان: خیلی کوتاهه، جزئیات مهم (نیازمندی‌ها، مهارت‌ها) رو نداره.
-    فقط توضیحات: عنوان معمولاً قوی‌ترین سیگنال معناییه، از دستش ندیم.
-    """
+    """Title + cleaned description: title alone lacks detail, description
+    alone loses the strongest signal."""
     parts = [title]
     if description:
         parts.append(clean_html(description))
@@ -42,13 +32,12 @@ def build_embedding_text(title: str, description: str | None) -> str:
 
 @lru_cache
 def get_embedding_model() -> SentenceTransformer:
-    """مدل فقط یک‌بار از دیسک/دانلود لود می‌شه، نه هر بار که embed_text صدا زده بشه."""
     return SentenceTransformer(MODEL_NAME)
 
 
 def embed_text(text: str) -> list[float]:
-    # normalize_embeddings=True یعنی بردارها طول واحد دارن، پس فاصله‌ی
-    # کسینوسی همون ضرب داخلی ساده می‌شه — استاندارد برای جستجوی شباهت.
+    # normalize_embeddings=True: unit-length vectors, so cosine distance
+    # reduces to a plain dot product.
     vector = get_embedding_model().encode(text, normalize_embeddings=True, show_progress_bar=False)
     embedding = vector.tolist()
     assert len(embedding) == EMBEDDING_DIMENSIONS

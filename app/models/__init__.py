@@ -1,8 +1,5 @@
-"""
-Import همه‌ی مدل‌ها اینجا لازمه تا SQLAlchemy بتونه رابطه‌های بینشون رو
-resolve کنه (چون در کد خود مدل‌ها، ارجاع به مدل دیگه به‌صورت رشته نوشته
-شده، نه import مستقیم، تا import چرخه‌ای پیش نیاد).
-"""
+"""Import every model here so SQLAlchemy can resolve the string-based
+relationship references between them (avoids circular imports)."""
 
 from app.models.eligibility import Eligibility
 from app.models.opportunity import Opportunity

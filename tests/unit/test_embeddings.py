@@ -1,7 +1,4 @@
-"""
-تست توابع خالص app.services.embeddings — بدون لود کردن مدل واقعی
-(که کند و وابسته به دانلود وزن‌هاست؛ اون تست integration جداست).
-"""
+"""Pure-function tests for app.services.embeddings; no model loading."""
 
 from app.services.embeddings import build_embedding_text, clean_html
 

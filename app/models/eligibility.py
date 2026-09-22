@@ -12,12 +12,8 @@ if TYPE_CHECKING:
 
 
 class Eligibility(Base):
-    """
-    نتیجه‌ی استخراج LLM از متن آگهی — یک Entity جدا از Opportunity،
-    چون منبعش فرق داره (استنباط مدل، نه داده‌ی خام منبع) و ممکنه در
-    آینده دوباره‌محاسبه بشه (مثلاً با پرامپت یا مدل بهتر) بدون این‌که
-    به خود Opportunity دست بزنیم.
-    """
+    """LLM-derived, kept separate from Opportunity so it can be
+    recomputed later (better prompt/model) without touching source data."""
 
     __tablename__ = "eligibilities"
 

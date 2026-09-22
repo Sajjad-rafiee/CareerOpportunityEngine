@@ -1,9 +1,7 @@
-"""
-Adapter برای Greenhouse Job Board API.
+"""Greenhouse Job Board adapter.
 
-مسئولیت این فایل فقط یک چیزه: گرفتن داده خام از Greenhouse و تبدیلش به
-فرمت داخلی ما (OpportunityIngest). هیچ منطق تجاری (eligibility, matching,
-ذخیره در دیتابیس) نباید اینجا باشه.
+Fetches raw postings and normalizes them into OpportunityIngest.
+No business logic (eligibility, matching, persistence) belongs here.
 """
 
 import logging
@@ -19,17 +17,14 @@ GREENHOUSE_JOBS_URL = "https://boards-api.greenhouse.io/v1/boards/{board_token}/
 
 
 class GreenhouseAPIError(Exception):
-    """وقتی Greenhouse خطا برگردونه یا جواب به شکلی که انتظار داریم نباشه."""
+    pass
 
 
 def _is_retryable(exc: BaseException) -> bool:
-    # خطای شبکه (timeout، قطعی اتصال و غیره): همیشه ارزش تلاش دوباره داره.
     if isinstance(exc, httpx.TransportError):
         return True
-    # خطای سمت سرور (5xx): موقتیه، احتمالاً با تلاش دوباره حل می‌شه.
-    # خطای سمت کلاینت (4xx، مثل 404 یا board اشتباه): تلاش دوباره فایده‌ای نداره،
-    # چون با تکرار همون درخواست، همون جواب رو می‌گیریم.
     if isinstance(exc, httpx.HTTPStatusError):
+        # 5xx is transient; 4xx (bad board token, etc.) won't fix itself.
         return exc.response.status_code >= 500
     return False
 

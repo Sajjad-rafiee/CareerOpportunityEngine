@@ -1,9 +1,4 @@
-"""
-یک جای واحد برای خوندن تنظیمات از .env.
-
-به‌جای اینکه os.getenv() توی کل کد پخش بشه (که نه type-safe است نه
-قابل validate)، همه‌چیز از اینجا با یک شیء Settings واحد در دسترسه.
-"""
+"""Single source of truth for env-based settings."""
 
 from functools import lru_cache
 
@@ -19,8 +14,8 @@ class Settings(BaseSettings):
     postgres_host: str = "localhost"
     postgres_port: int = 5432
 
-    # اختیاریه چون بقیه‌ی برنامه (DB، API معمولی) نباید فقط به‌خاطر نبود
-    # این کلید از کار بیفته - فقط استخراج eligibility بهش نیاز داره.
+    # Optional: only eligibility extraction needs it, everything else
+    # (DB, regular API) should keep working without it.
     gemini_api_key: str | None = None
 
     @property

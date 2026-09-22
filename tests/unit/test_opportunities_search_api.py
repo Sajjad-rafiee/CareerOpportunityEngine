@@ -1,9 +1,6 @@
-"""
-تست endpoint جستجوی معنایی — بدون نیاز به مدل embedding واقعی یا
-Postgres. هم embed_text و هم search_opportunities رو mock می‌کنیم،
-چون این تست فقط باید مسیریابی/اعتبارسنجی/شکل پاسخ رو بسنجه، نه
-درستی خود جستجوی معنایی (که تست integration جداگانه داره).
-"""
+"""Search endpoint routing/validation/response shape, with embed_text
+and search_opportunities mocked - the real search logic has its own
+integration test."""
 
 import uuid
 from collections.abc import Iterator
@@ -43,9 +40,8 @@ def client(monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClient]:
         lambda db, query_embedding, limit: [(fake_opportunity, 0.87)],
     )
 
-    # هیچ کوئری واقعی زده نمی‌شه (search_opportunities mock شده)، ولی
-    # dependency واقعی get_db بدون این override سعی می‌کرد به Postgres
-    # واقعی وصل بشه و تنظیمات .env رو بخواد - در CI اونجا نیستن.
+    # search_opportunities is mocked so no real query runs, but the
+    # real get_db would still try to build a Postgres engine without this.
     app.dependency_overrides[get_db] = lambda: iter([None])
 
     yield TestClient(app)

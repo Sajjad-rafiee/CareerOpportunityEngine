@@ -11,12 +11,7 @@ if TYPE_CHECKING:
 
 
 class Organization(Base):
-    """
-    نسخه‌ی حداقلی: فقط ستون‌هایی که در این مرحله واقعاً داده براشون داریم.
-
-    ERD کامل‌تر (type, country, city, website) وقتی اضافه می‌شه که یک
-    منبع دوم یا فرآیند غنی‌سازی داده، واقعاً این اطلاعات رو تامین کنه.
-    """
+    """Minimal for now: only the columns Greenhouse actually supplies."""
 
     __tablename__ = "organizations"
 

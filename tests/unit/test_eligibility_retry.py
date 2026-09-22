@@ -1,10 +1,6 @@
-"""
-تست رفتار retry برای extract_eligibility، بدون تماس واقعی با Gemini.
-
-این تست‌ها دقیقاً همون باگی رو پوشش می‌دن که در استفاده‌ی واقعی پیدا شد:
-خطای ۴۲۹ (rate limit) باید retry بشه، نه این‌که مثل بقیه‌ی خطاهای ۴xx
-بلافاصله fail بشه.
-"""
+"""Retry behavior for extract_eligibility, no real Gemini calls.
+Covers a real bug found in production use: 429 (rate limit) must
+retry, unlike other 4xx which should fail fast."""
 
 from typing import Any
 

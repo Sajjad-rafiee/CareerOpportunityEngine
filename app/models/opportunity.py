@@ -12,8 +12,7 @@ if TYPE_CHECKING:
     from app.models.eligibility import Eligibility
     from app.models.organization import Organization
 
-# ابعاد بردار sentence-transformers/all-MiniLM-L6-v2. اگه مدل embedding
-# عوض بشه، این عدد هم باید عوض بشه (و یک migration جدید بخواد).
+# sentence-transformers/all-MiniLM-L6-v2 output size.
 EMBEDDING_DIMENSIONS = 384
 
 
@@ -37,8 +36,6 @@ class Opportunity(Base):
     external_id: Mapped[str] = mapped_column(String(255))
     source: Mapped[str] = mapped_column(String(50))
 
-    # nullable چون رکوردهایی که قبل از این migration وارد شدن، یا رکوردهایی
-    # که مدل embedding موقع لود کردنشون در دسترس نبوده، بردار ندارن.
     embedding: Mapped[list[float] | None] = mapped_column(
         Vector(EMBEDDING_DIMENSIONS), default=None
     )
@@ -50,9 +47,5 @@ class Opportunity(Base):
 
     @property
     def organization_name(self) -> str:
-        """
-        برای این‌که OpportunityResponse بتونه با from_attributes خودکار
-        این مقدار رو از روی رابطه organization بگیره، بدون این‌که لایه‌ی
-        API مجبور باشه دستی این مپینگ رو انجام بده.
-        """
+        """Lets OpportunityResponse pick this up via from_attributes."""
         return self.organization.name

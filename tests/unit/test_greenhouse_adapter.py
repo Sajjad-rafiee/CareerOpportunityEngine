@@ -1,10 +1,5 @@
-"""
-تست منطق normalize_job، بدون تماس واقعی با شبکه.
-
-نکته: fetch_raw_jobs() اینجا تست نمی‌شه چون به شبکه وابسته‌ست — اون تست
-integration جداگانه‌ای می‌خواد (tests/integration/test_greenhouse_live.py).
-اینجا فقط چک می‌کنیم قرارداد normalize_job درست عمل می‌کنه.
-"""
+"""normalize_job logic, no network. fetch_raw_jobs has its own
+integration test (tests/integration/test_greenhouse_live.py)."""
 
 from app.adapters.greenhouse import normalize_job
 from app.schemas.opportunity import OpportunityIngest

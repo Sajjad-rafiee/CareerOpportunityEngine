@@ -1,6 +1,4 @@
-"""
-تست سرور: بالا میاد و endpoint سلامت جواب درست می‌ده.
-"""
+"""Server boots and the health endpoint responds correctly."""
 
 from fastapi.testclient import TestClient
 
