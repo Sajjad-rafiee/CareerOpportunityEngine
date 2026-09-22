@@ -9,6 +9,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.base import Base
 
 if TYPE_CHECKING:
+    from app.models.eligibility import Eligibility
     from app.models.organization import Organization
 
 # ابعاد بردار sentence-transformers/all-MiniLM-L6-v2. اگه مدل embedding
@@ -43,6 +44,9 @@ class Opportunity(Base):
     )
 
     organization: Mapped["Organization"] = relationship(back_populates="opportunities")
+    eligibility: Mapped["Eligibility | None"] = relationship(
+        back_populates="opportunity", uselist=False
+    )
 
     @property
     def organization_name(self) -> str:

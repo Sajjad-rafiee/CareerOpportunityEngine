@@ -24,3 +24,6 @@ def setup_logging() -> None:
     if level > logging.DEBUG:
         logging.getLogger("httpx").setLevel(logging.WARNING)
         logging.getLogger("httpcore").setLevel(logging.WARNING)
+        # یک warning یک‌باره‌ی خود SDK درباره‌ی الگوی داخلیش (AFC) - به ما
+        # ربطی نداره، فقط نویزه.
+        logging.getLogger("google_genai.models").setLevel(logging.ERROR)

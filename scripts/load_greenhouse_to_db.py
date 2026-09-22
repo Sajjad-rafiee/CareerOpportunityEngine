@@ -15,7 +15,8 @@ from sqlalchemy.orm import Session
 
 from app.core.logging import setup_logging
 from app.db.session import SessionLocal
-from app.models import Opportunity, Organization
+from app.models import Eligibility, Opportunity, Organization
+from app.services.eligibility import extract_eligibility
 from app.services.embeddings import build_embedding_text, embed_text
 
 logger = logging.getLogger(__name__)
@@ -34,7 +35,7 @@ def get_or_create_organization(db: Session, name: str) -> Organization:
     return organization
 
 
-def upsert_opportunity(db: Session, record: dict, organization: Organization) -> None:
+def upsert_opportunity(db: Session, record: dict, organization: Organization) -> Opportunity:
     existing = (
         db.query(Opportunity)
         .filter_by(source=record["source"], external_id=record["external_id"])
@@ -49,20 +50,44 @@ def upsert_opportunity(db: Session, record: dict, organization: Organization) ->
         existing.deadline = record["deadline"]
         existing.posted_at = record["posted_at"]
         existing.embedding = embedding
+        return existing
+
+    opportunity = Opportunity(
+        organization_id=organization.id,
+        title=record["title"],
+        description=record["description"],
+        type=record["type"],
+        url=record["url"],
+        deadline=record["deadline"],
+        posted_at=record["posted_at"],
+        external_id=record["external_id"],
+        source=record["source"],
+        embedding=embedding,
+    )
+    db.add(opportunity)
+    db.flush()  # opportunity.id رو لازم داریم تا Eligibility بتونه بهش وصل بشه
+    return opportunity
+
+
+def ensure_eligibility(db: Session, opportunity: Opportunity, record: dict) -> None:
+    """
+    فقط برای رکوردهایی که هنوز eligibility ندارن استخراج می‌کنه - برخلاف
+    embedding (که رایگان و لوکاله)، این یک API پولیه، پس نباید هر بار
+    اجرای مجدد این اسکریپت دوباره هزینه‌ی جدید بسازه.
+    """
+    if opportunity.eligibility is not None:
         return
 
+    text = build_embedding_text(record["title"], record["description"])
+    extraction = extract_eligibility(text)
+
     db.add(
-        Opportunity(
-            organization_id=organization.id,
-            title=record["title"],
-            description=record["description"],
-            type=record["type"],
-            url=record["url"],
-            deadline=record["deadline"],
-            posted_at=record["posted_at"],
-            external_id=record["external_id"],
-            source=record["source"],
-            embedding=embedding,
+        Eligibility(
+            opportunity_id=opportunity.id,
+            offers_visa_sponsorship=extraction.offers_visa_sponsorship,
+            german_language_required=extraction.german_language_required,
+            experience_level=extraction.experience_level,
+            remote_friendly=extraction.remote_friendly,
         )
     )
 
@@ -80,7 +105,8 @@ def main() -> None:
             if org_name not in organizations_by_name:
                 organizations_by_name[org_name] = get_or_create_organization(db, org_name)
 
-            upsert_opportunity(db, record, organizations_by_name[org_name])
+            opportunity = upsert_opportunity(db, record, organizations_by_name[org_name])
+            ensure_eligibility(db, opportunity, record)
 
         db.commit()
 

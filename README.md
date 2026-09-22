@@ -10,6 +10,7 @@ An AI-powered platform that aggregates job and academic opportunities from multi
 - A `Greenhouse` job board adapter that fetches real postings and normalizes them into an internal schema, with automatic retry on transient network/server errors.
 - SQLAlchemy models and Alembic migrations for persisting opportunities, with an idempotent loader that finds-or-creates the parent organization before inserting or updating each record.
 - `GET /opportunities` (paginated) and `GET /opportunities/search` for semantic search: query text is embedded locally (`sentence-transformers/all-MiniLM-L6-v2`, no API key or network call needed at query time) and matched against stored embeddings with pgvector cosine distance, so a search finds relevant postings even with no shared words.
+- Structured eligibility extraction with an LLM (Gemini): visa sponsorship, German language requirement, experience level, and remote-friendliness are inferred from each posting's raw text into their own `Eligibility` record, constrained to a Pydantic schema so the model can't return malformed output.
 - Centralized, configurable logging (`LOG_LEVEL` env var) instead of ad-hoc `print` calls.
 - Unit tests for business logic, a separate opt-in integration suite for live external calls, linting (`ruff`) and static type checking (`mypy`), all enforced in CI.
 
@@ -53,7 +54,7 @@ uv run alembic upgrade head              # create/update tables
 uv run python -m scripts.load_greenhouse_to_db
 ```
 
-Reads `data/opportunities_greenhouse.json` and upserts it into Postgres, creating each organization on first sight and updating existing opportunities on repeat runs instead of duplicating them. Each record's `title + description` is also embedded and stored alongside it, ready for semantic search.
+Reads `data/opportunities_greenhouse.json` and upserts it into Postgres, creating each organization on first sight and updating existing opportunities on repeat runs instead of duplicating them. Each record's `title + description` is also embedded and stored alongside it, ready for semantic search. Eligibility is extracted with an LLM once per opportunity (skipped on repeat runs if it already exists, since unlike embeddings this calls a paid API) — requires `GEMINI_API_KEY` in `.env` (free key from [aistudio.google.com/apikey](https://aistudio.google.com/apikey)).
 
 ## Semantic search
 

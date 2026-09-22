@@ -19,6 +19,10 @@ class Settings(BaseSettings):
     postgres_host: str = "localhost"
     postgres_port: int = 5432
 
+    # اختیاریه چون بقیه‌ی برنامه (DB، API معمولی) نباید فقط به‌خاطر نبود
+    # این کلید از کار بیفته - فقط استخراج eligibility بهش نیاز داره.
+    gemini_api_key: str | None = None
+
     @property
     def database_url(self) -> str:
         return (
