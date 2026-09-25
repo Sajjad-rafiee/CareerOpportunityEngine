@@ -67,6 +67,14 @@ def test_fault_mode_defaults_to_none():
 def test_disabled_by_default_search_behaves_normally(client: TestClient, monkeypatch):
     get_settings.cache_clear()
     monkeypatch.delenv("OTEL_DEMO_FAULT_MODE", raising=False)
+    # No otel_demo_fault_mode and no .env, so the real default applies.
+    monkeypatch.setattr(
+        opportunities_module,
+        "get_settings",
+        lambda: Settings(
+            postgres_db="test", postgres_user="test", postgres_password="test", _env_file=None
+        ),
+    )
 
     response = client.get("/opportunities/search", params={"q": "engineer"})
 
