@@ -50,13 +50,18 @@ def client(monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClient]:
 
 def _settings_with_fault_mode(mode: str) -> Settings:
     return Settings(
-        postgres_db="test", postgres_user="test", postgres_password="test",
+        postgres_db="test",
+        postgres_user="test",
+        postgres_password="test",
         otel_demo_fault_mode=mode,
     )
 
 
 def test_fault_mode_defaults_to_none():
-    assert Settings(postgres_db="t", postgres_user="t", postgres_password="t").otel_demo_fault_mode == "none"
+    assert (
+        Settings(postgres_db="t", postgres_user="t", postgres_password="t").otel_demo_fault_mode
+        == "none"
+    )
 
 
 def test_disabled_by_default_search_behaves_normally(client: TestClient, monkeypatch):
@@ -71,10 +76,13 @@ def test_disabled_by_default_search_behaves_normally(client: TestClient, monkeyp
 
 def test_error_mode_returns_503_without_searching(client: TestClient, monkeypatch):
     get_settings.cache_clear()
-    monkeypatch.setattr(opportunities_module, "get_settings", lambda: _settings_with_fault_mode("error"))
+    monkeypatch.setattr(
+        opportunities_module, "get_settings", lambda: _settings_with_fault_mode("error")
+    )
     called = []
     monkeypatch.setattr(
-        opportunities_module, "search_opportunities",
+        opportunities_module,
+        "search_opportunities",
         lambda db, query_embedding, limit: called.append(True) or [],
     )
 
@@ -86,9 +94,13 @@ def test_error_mode_returns_503_without_searching(client: TestClient, monkeypatc
 
 def test_delay_mode_sleeps_before_searching(client: TestClient, monkeypatch):
     get_settings.cache_clear()
-    monkeypatch.setattr(opportunities_module, "get_settings", lambda: _settings_with_fault_mode("delay"))
+    monkeypatch.setattr(
+        opportunities_module, "get_settings", lambda: _settings_with_fault_mode("delay")
+    )
     sleep_calls = []
-    monkeypatch.setattr(opportunities_module.time, "sleep", lambda seconds: sleep_calls.append(seconds))
+    monkeypatch.setattr(
+        opportunities_module.time, "sleep", lambda seconds: sleep_calls.append(seconds)
+    )
 
     response = client.get("/opportunities/search", params={"q": "engineer"})
 
@@ -98,9 +110,13 @@ def test_delay_mode_sleeps_before_searching(client: TestClient, monkeypatch):
 
 def test_none_mode_does_not_sleep_or_error(client: TestClient, monkeypatch):
     get_settings.cache_clear()
-    monkeypatch.setattr(opportunities_module, "get_settings", lambda: _settings_with_fault_mode("none"))
+    monkeypatch.setattr(
+        opportunities_module, "get_settings", lambda: _settings_with_fault_mode("none")
+    )
     sleep_calls = []
-    monkeypatch.setattr(opportunities_module.time, "sleep", lambda seconds: sleep_calls.append(seconds))
+    monkeypatch.setattr(
+        opportunities_module.time, "sleep", lambda seconds: sleep_calls.append(seconds)
+    )
 
     response = client.get("/opportunities/search", params={"q": "engineer"})
 
