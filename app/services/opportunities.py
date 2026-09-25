@@ -3,6 +3,7 @@
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
+from app.core.telemetry import get_tracer
 from app.models.opportunity import Opportunity
 
 
@@ -28,15 +29,20 @@ def search_opportunities(
     db: Session, query_embedding: list[float], limit: int
 ) -> list[tuple[Opportunity, float]]:
     """Nearest opportunities to a query vector by pgvector cosine distance."""
-    distance = Opportunity.embedding.cosine_distance(query_embedding)
+    with get_tracer().start_as_current_span("opportunities.search") as span:
+        span.set_attribute("search.limit", limit)
 
-    rows = db.execute(
-        select(Opportunity, distance.label("distance"))
-        .options(selectinload(Opportunity.organization))
-        .where(Opportunity.embedding.is_not(None))
-        .order_by(distance)
-        .limit(limit)
-    ).all()
+        distance = Opportunity.embedding.cosine_distance(query_embedding)
+
+        rows = db.execute(
+            select(Opportunity, distance.label("distance"))
+            .options(selectinload(Opportunity.organization))
+            .where(Opportunity.embedding.is_not(None))
+            .order_by(distance)
+            .limit(limit)
+        ).all()
+
+        span.set_attribute("result.count", len(rows))
 
     # Similarity (higher = closer) reads better to API consumers than distance.
     return [(opportunity, 1 - dist) for opportunity, dist in rows]

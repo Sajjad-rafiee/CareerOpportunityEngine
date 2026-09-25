@@ -1,8 +1,11 @@
 """Opportunity endpoints. Kept thin: parse params, call services, shape response."""
 
-from fastapi import APIRouter, Depends, Query
+import time
+
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
+from app.core.config import get_settings
 from app.db.session import get_db
 from app.schemas.opportunity import (
     OpportunityResponse,
@@ -13,6 +16,18 @@ from app.services.embeddings import embed_text
 from app.services.opportunities import list_opportunities, search_opportunities
 
 router = APIRouter(prefix="/opportunities", tags=["opportunities"])
+
+# Local-only observability demo fault injection (OTEL_DEMO_FAULT_MODE, default
+# "none"): produces a real slow/failing trace on demand, never in normal use.
+_DEMO_FAULT_DELAY_SECONDS = 2.0
+
+
+def _apply_demo_fault() -> None:
+    mode = get_settings().otel_demo_fault_mode
+    if mode == "delay":
+        time.sleep(_DEMO_FAULT_DELAY_SECONDS)
+    elif mode == "error":
+        raise HTTPException(status_code=503, detail="Demo fault injection: simulated outage")
 
 
 @router.get("", response_model=PaginatedOpportunities)
@@ -37,6 +52,8 @@ def search(
     limit: int = Query(10, ge=1, le=50),
     db: Session = Depends(get_db),
 ) -> list[OpportunitySearchResult]:
+    _apply_demo_fault()
+
     query_embedding = embed_text(q)
     results = search_opportunities(db, query_embedding=query_embedding, limit=limit)
 

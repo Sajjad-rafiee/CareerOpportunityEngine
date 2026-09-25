@@ -27,6 +27,18 @@ services:
       POSTGRES_HOST: postgres
       POSTGRES_PORT: 5432
       GEMINI_API_KEY: ${GEMINI_API_KEY}
+      OTEL_SERVICE_NAME: ${OTEL_SERVICE_NAME:-career-opportunity-engine}
+      # Not localhost: this container has its own network namespace, so
+      # "localhost" would mean itself, not the host running Jaeger.
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-http://host.docker.internal:4318}
+      OTEL_TRACES_EXPORTER: ${OTEL_TRACES_EXPORTER:-none}
+      OTEL_PROPAGATORS: ${OTEL_PROPAGATORS:-tracecontext,baggage}
+      OTEL_DEMO_FAULT_MODE: ${OTEL_DEMO_FAULT_MODE:-none}
+
+    # host.docker.internal is automatic on Docker Desktop (macOS/Windows);
+    # this makes it work on Linux too, where it isn't automatic.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
     ports:
       - "8000:8000"

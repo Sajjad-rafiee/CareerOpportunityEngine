@@ -1,8 +1,11 @@
 """Single source of truth for env-based settings."""
 
 from functools import lru_cache
+from typing import Literal
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+DemoFaultMode = Literal["none", "delay", "error"]
 
 
 class Settings(BaseSettings):
@@ -17,6 +20,11 @@ class Settings(BaseSettings):
     # Optional: only eligibility extraction needs it, everything else
     # (DB, regular API) should keep working without it.
     gemini_api_key: str | None = None
+
+    # Local-only fault injection for the observability demo: "delay" sleeps
+    # briefly before searching, "error" returns 503 instead of searching.
+    # Off ("none") by default; never set in production.
+    otel_demo_fault_mode: DemoFaultMode = "none"
 
     @property
     def database_url(self) -> str:

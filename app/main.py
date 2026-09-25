@@ -5,6 +5,7 @@ from fastapi import FastAPI
 
 from app.api.opportunities import router as opportunities_router
 from app.core.logging import setup_logging
+from app.core.telemetry import setup_telemetry
 from app.services.embeddings import get_embedding_model
 
 setup_logging()
@@ -21,6 +22,8 @@ app = FastAPI(
     version="0.1.0",
     lifespan=lifespan,
 )
+
+setup_telemetry(app)
 
 app.include_router(opportunities_router)
 
